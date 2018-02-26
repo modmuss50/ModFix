@@ -1,0 +1,73 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		jcenter()
+		maven {
+			name = "forge"
+			url = "http://files.minecraftforge.net/maven"
+		}
+		maven {
+			name = "sonatype"
+			url = "https://oss.sonatype.org/content/repositories/snapshots/"
+		}
+		maven {
+			name = "Modmuss50"
+			url = "http://maven.modmuss50.me/"
+		}
+		maven {
+			name = 'mojang'
+			url = 'https://libraries.minecraft.net/'
+		}
+	}
+	dependencies {
+		classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+	}
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+version = "1.12.2-1.0.0"
+
+def ENV = System.getenv()
+if (ENV.BUILD_NUMBER) {
+	version = version + "." + "${System.getenv().BUILD_NUMBER}"
+}
+
+minecraft {
+	version = "1.12.2-14.23.2.2613"
+	mappings = "snapshot_20170925"
+	replace "@MODVERSION@", project.version
+	useDepAts = true
+	runDir = "run"
+}
+
+jar {
+	manifest {
+		attributes 'FMLCorePlugin': 'modfix.ModFixLC'
+		attributes 'FMLCorePluginContainsFMLMod': 'true'
+	}
+}
+
+group = 'ModFix'
+
+task signJar(type: SignJar, dependsOn: reobfJar) {
+	onlyIf {
+		project.hasProperty('keyStore')
+	}
+
+	if (project.hasProperty('keyStore')) {
+		keyStore = project.keyStore
+		alias = project.keyStoreAlias
+		storePass = project.keyStorePass
+		keyPass = project.keyStoreKeyPass
+		inputFile = jar.archivePath
+		outputFile = jar.archivePath
+	}
+}
+
+build.dependsOn signJar
