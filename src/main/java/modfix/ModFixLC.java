@@ -7,6 +7,10 @@ import java.util.Map;
 
 //-Dfml.coreMods.load=modfix.ModFixLC
 public class ModFixLC implements IFMLLoadingPlugin {
+
+    //True when using SRG names
+    public static boolean runtimeDeobfuscationEnabled = true;
+
     @Override
     public String[] getASMTransformerClass() {
         return new String[]{"modfix.ModFixCT"};
@@ -25,7 +29,7 @@ public class ModFixLC implements IFMLLoadingPlugin {
 
     @Override
     public void injectData(Map<String, Object> data) {
-
+        runtimeDeobfuscationEnabled = (boolean) data.get("runtimeDeobfuscationEnabled");
     }
 
     @Override

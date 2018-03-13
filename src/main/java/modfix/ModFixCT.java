@@ -2,14 +2,10 @@ package modfix;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.world.World;
-import org.apache.commons.io.FileUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
-
-import java.io.File;
-import java.io.IOException;
 
 
 public class ModFixCT implements IClassTransformer {
@@ -34,13 +30,24 @@ public class ModFixCT implements IClassTransformer {
                         methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), insnList);
                         System.out.println("Patched registerTorch");
                     });
-
-            try {
-                //TODO dont ship this
-                FileUtils.writeByteArrayToFile(new File("TorchRegistry.class"), writeClassToBytes(classNode));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            return writeClassToBytes(classNode);
+        }
+        if(name.equals("net.minecraft.world.WorldProvider")){
+            ClassNode classNode = readClassFromBytes(basicClass);
+            classNode.methods.stream()
+                    .filter(methodNode -> methodNode.name.equals("getRandomizedSpawnPoint"))
+                    .forEach(methodNode -> {
+                        System.out.println("Found getRandomizedSpawnPoint method");
+                        InsnList insnList = new InsnList();
+                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        String world = ModFixLC.runtimeDeobfuscationEnabled ? "field_76579_a" : "world";
+                        String getSpawnPoint = ModFixLC.runtimeDeobfuscationEnabled ? "func_175694_M" : "getSpawnPoint";
+                        insnList.add(new FieldInsnNode(Opcodes.GETFIELD, "net/minecraft/world/WorldProvider", world, "Lnet/minecraft/world/World;"));
+                        insnList.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "net/minecraft/world/World", getSpawnPoint, "()Lnet/minecraft/util/math/BlockPos;", false));
+                        insnList.add(new InsnNode(Opcodes.ARETURN));
+                        methodNode.instructions.clear();
+                        methodNode.instructions.add(insnList);
+                    });
             return writeClassToBytes(classNode);
         }
         return basicClass;
