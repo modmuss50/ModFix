@@ -7,8 +7,10 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
-
 public class ModFixCT implements IClassTransformer {
+
+	public static String modListCheck = null;
+
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
         //Fix taken from https://github.com/Xalcon/TorchMaster/pull/50/files
@@ -32,24 +34,36 @@ public class ModFixCT implements IClassTransformer {
                     });
             return writeClassToBytes(classNode);
         }
-        if(name.equals("net.minecraft.world.WorldProvider")){
-            ClassNode classNode = readClassFromBytes(basicClass);
-            classNode.methods.stream()
-                    .filter(methodNode -> methodNode.name.equals("getRandomizedSpawnPoint"))
-                    .forEach(methodNode -> {
-                        System.out.println("Found getRandomizedSpawnPoint method");
-                        InsnList insnList = new InsnList();
-                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                        String world = ModFixLC.runtimeDeobfuscationEnabled ? "field_76579_a" : "world";
-                        String getSpawnPoint = ModFixLC.runtimeDeobfuscationEnabled ? "func_175694_M" : "getSpawnPoint";
-                        insnList.add(new FieldInsnNode(Opcodes.GETFIELD, "net/minecraft/world/WorldProvider", world, "Lnet/minecraft/world/World;"));
-                        insnList.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "net/minecraft/world/World", getSpawnPoint, "()Lnet/minecraft/util/math/BlockPos;", false));
-                        insnList.add(new InsnNode(Opcodes.ARETURN));
-                        methodNode.instructions.clear();
-                        methodNode.instructions.add(insnList);
-                    });
-            return writeClassToBytes(classNode);
-        }
+//        if(name.equals("net.minecraft.world.WorldProvider")){
+//            ClassNode classNode = readClassFromBytes(basicClass);
+//            classNode.methods.stream()
+//                    .filter(methodNode -> methodNode.name.equals("getRandomizedSpawnPoint"))
+//                    .forEach(methodNode -> {
+//                        System.out.println("Found getRandomizedSpawnPoint method");
+//                        InsnList insnList = new InsnList();
+//                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
+//                        String world = ModFixLC.runtimeDeobfuscationEnabled ? "field_76579_a" : "world";
+//                        String getSpawnPoint = ModFixLC.runtimeDeobfuscationEnabled ? "func_175694_M" : "getSpawnPoint";
+//                        insnList.add(new FieldInsnNode(Opcodes.GETFIELD, "net/minecraft/world/WorldProvider", world, "Lnet/minecraft/world/World;"));
+//                        insnList.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "net/minecraft/world/World", getSpawnPoint, "()Lnet/minecraft/util/math/BlockPos;", false));
+//                        insnList.add(new InsnNode(Opcodes.ARETURN));
+//                        methodNode.instructions.clear();
+//                        methodNode.instructions.add(insnList);
+//                    });
+//            return writeClassToBytes(classNode);
+//        }
+	    //Disables mod version checking when joing a server
+	    if(name.equals("net.minecraftforge.fml.common.network.internal.FMLNetworkHandler")){
+		    ClassNode classNode = readClassFromBytes(basicClass);
+		    classNode.methods.stream()
+			    .filter(methodNode -> methodNode.name.equals("checkModList")).forEach(methodNode -> {
+				    InsnList insnList = new InsnList();
+				    insnList.add(new InsnNode(Opcodes.ACONST_NULL));
+				    insnList.add(new InsnNode(Opcodes.ARETURN));
+				    methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), insnList);
+			    });
+		    return writeClassToBytes(classNode);
+	    }
         return basicClass;
     }
 
